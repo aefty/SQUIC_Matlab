@@ -1,2 +1,18 @@
-/Applications/MATLAB_R2019b.app/bin/mex  COPTIMFLAGS="-g -fsanitize=address  -DNDEBUG" SQUIC.c
-pp -L~/ -lSQUIC
+
+// 0) compile the mex file using the following command
+mex  COPTIMFLAGS="-O3" SQUIC.cpp -L~/ -lSQUIC
+
+//1) Set Enviorment variable in matlabe using the startup script. 
+// You can do this by running the following command in MATLAB_R2019b
+
+edit(fullfile(userpath,'startup.m'))
+
+//2) Put the followng commands in the file 
+
+disp('Setting Enviorment Variable "KMP_DUPLICATE_LIB_OK=TRUE" ')
+setenv('KMP_DUPLICATE_LIB_OK','TRUE');
+
+
+
+
+
