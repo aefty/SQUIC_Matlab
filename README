@@ -1,0 +1,2 @@
+/Applications/MATLAB_R2019b.app/bin/mex  COPTIMFLAGS="-g -fsanitize=address  -DNDEBUG" SQUIC.c
+pp -L~/ -lSQUIC
