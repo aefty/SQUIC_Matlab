@@ -1,7 +1,7 @@
 // This is the MEX wrapper for SQUIC
 
 //
-//   /Applications/MATLAB_R2019b.app/bin/mex  COPTIMFLAGS="-g -fsanitize=address  -DNDEBUG" SQUIC.cpp -L~/ -lSQUIC
+//   /Applications/MATLAB_R2019b.app/bin/mex  COPTIMFLAGS="-O3" SQUIC.cpp -L~/ -lSQUIC
 //
 
 #include <mex.h>
@@ -32,7 +32,7 @@ extern "C"
         // M matrix
         integer *M_i, integer *M_j, double *M_val, integer M_nnz,
         // Optimization Paramters
-        int max_iter, double drop_tol, double term_tol, int verbose,
+        int max_iter, double drop_tol, double term_tol, int verbose, bool option_block,
         // Intial X0 and W0 are provided, and the end of the routing the final values of X and W are written
         integer *&X_i, integer *&X_j, double *&X_val, integer &X_nnz,
         integer *&W_i, integer *&W_j, double *&W_val, integer &W_nnz,
@@ -45,36 +45,30 @@ extern "C"
         double &info_trXS_test);
 }
 
-#define PRINT_MSG
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-
-#ifdef PRINT_MSG
-    mexPrintf("SQUIC_METHOD started\n");
-    fflush(stdout);
-#endif
 
     if (nrhs < 2)
     {
         mexErrMsgIdAndTxt("SQUIC:arguments",
                           "Missing arguments, please specify\n"
-                          "             data_train  - samples to build the empirical covariance matrix (pxn)\n"
-                          "             lambda      - regularization parameter\n"
-                          "             max_iter    - maximum number of Newton steps\n"
-                          "             drop_tol    - accuracy of the objective function\n"
-                          "             term_tol    - accuracy of the objective function\n"
-                          "             verbose     - initial covariance matrix\n"
-                          "             M           - regularization matrix\n"
-                          "             X0          - initial precision matrix\n"
-                          "             W0          - initial precision matrix\n"
-                          "             data_test   - initial precision matrix\n");
+                          "             data_train     - samples to build the empirical covariance matrix (pxn)\n"
+                          "             lambda         - regularization parameter\n"
+                          "             max_iter       - maximum number of Newton steps\n"
+                          "             drop_tol       - accuracy of the objective function\n"
+                          "             term_tol       - accuracy of the objective function\n"
+                          "             verbose        - initial covariance matrix\n"
+                          "             option_block   - computaitonal approche (block 1 or scalar 0 )\n"
+                          "             M              - bias matrix\n"
+                          "             X0             - initial precision matrix\n"
+                          "             W0             - initial inverse precision matrix\n"
+                          "             data_test      - initial precision matrix\n");
     }
 
     int argIdx = 0;
 
     ////////////////////////////////////////
-    // 1. data_train matrix: double dense matrix
+    // 0. data_train matrix: double dense matrix
     ////////////////////////////////////////
     if (!mxIsDouble(prhs[argIdx]))
     {
@@ -89,7 +83,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     argIdx++;
 
     ////////////////////////////////////////
-    // 2. lambda: scalar double
+    // 1. lambda: scalar double
     ////////////////////////////////////////
     if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) //  Scalar (1x1) Numeric
     {
@@ -102,7 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     argIdx++;
 
     ////////////////////////////////////////
-    // 3. max_iter: scalar interger
+    // 2. max_iter: scalar interger
     ////////////////////////////////////////
     int max_iter = 10;
     if (nrhs > argIdx)
@@ -127,7 +121,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     ////////////////////////////////////////
-    // 4. drop_tol: scalar double
+    // 3. drop_tol: scalar double
     ////////////////////////////////////////
     double drop_tol = 1e-3;
     if (nrhs > argIdx)
@@ -143,7 +137,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     ////////////////////////////////////////
-    // 5. term_tol: scalar double
+    // 4. term_tol: scalar double
     ////////////////////////////////////////
     double term_tol = 1e-3;
     if (nrhs > argIdx)
@@ -159,7 +153,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     ////////////////////////////////////////
-    // 6. verbose - optional
+    // 5. verbose - optional
     ////////////////////////////////////////
     int verbose = 1;
     if (nrhs > argIdx)
@@ -172,6 +166,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         verbose = mxGetScalar(prhs[argIdx]);
+        argIdx++;
+    }
+
+    ////////////////////////////////////////
+    // 6. option_block - optional
+    ////////////////////////////////////////
+    bool option_block = true;
+    if (nrhs > argIdx)
+    {
+        if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) //  Scalar (1x1) Numeric
+        {
+            mexErrMsgIdAndTxt("SQUIC:type",
+                              "Expected a scalar. (Arg. %d)",
+                              argIdx + 1);
+        }
+
+        option_block = (bool)mxGetScalar(prhs[argIdx]);
         argIdx++;
     }
 
@@ -206,6 +217,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                               "M must have size corresponding to Y");
         }
 
+        //!! Note matlab empty sparse matrix have seem to alway have 1 nnz with a value of 0.0)
         if (M_nnz > 0) // M Matrix NOT zeros
         {
             // Copy MATLAB matrix to raw buffer;
@@ -213,27 +225,35 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mwIndex *M_j_matlab = mxGetJc(M);
             double *M_val_matlab = mxGetPr(M);
 
-            M_i = new integer[M_nnz];
-            M_j = new integer[p + 1];
-            M_val = new double[M_nnz];
-
-            // copy i and val
-            for (integer i = 0; i < M_nnz; i++)
+            // Special case where we have empty sparse matrix (nnz is still =1)
+            if (M_nnz == 1 && M_val_matlab[0] == 0.0)
             {
-                M_i[i] = M_i_matlab[i];
-                M_val[i] = M_val_matlab[i];
+                M_nnz = 0;
             }
-            // copy column count
-            for (integer i = 0; i < p + 1; i++)
+            else
             {
-                M_j[i] = M_j_matlab[i];
+                M_i = new integer[M_nnz];
+                M_j = new integer[p + 1];
+                M_val = new double[M_nnz];
+
+                // copy i and val
+                for (integer i = 0; i < M_nnz; i++)
+                {
+                    M_i[i] = M_i_matlab[i];
+                    M_val[i] = M_val_matlab[i];
+                }
+                // copy column count
+                for (integer i = 0; i < p + 1; i++)
+                {
+                    M_j[i] = M_j_matlab[i];
+                }
             }
         }
         argIdx++;
     }
 
     /////////////////////////////
-    // 8. X0 matrix: sparse matrix - Optional
+    // 7. X0 matrix: sparse matrix - Optional
     /////////////////////////////
     integer *X_i;
     integer *X_j;
@@ -270,26 +290,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mwIndex *X_j_matlab = mxGetJc(X);
             double *X_val_matlab = mxGetPr(X);
 
-            X_i = new integer[X_nnz];
-            X_j = new integer[p + 1];
-            X_val = new double[X_nnz];
-
-            for (integer i = 0; i < X_nnz; i++)
+            // Special case where we have empty sparse matrix (nnz is still =1)
+            if (X_nnz == 1 && X_val_matlab[0] == 0.0)
             {
-                X_i[i] = X_i_matlab[i];
-                X_val[i] = X_val_matlab[i];
+                X_nnz = 0;
             }
-
-            for (integer i = 0; i < p + 1; i++)
+            else
             {
-                X_j[i] = X_j_matlab[i];
+                X_i = new integer[X_nnz];
+                X_j = new integer[p + 1];
+                X_val = new double[X_nnz];
+
+                for (integer i = 0; i < X_nnz; i++)
+                {
+                    X_i[i] = X_i_matlab[i];
+                    X_val[i] = X_val_matlab[i];
+                }
+
+                for (integer i = 0; i < p + 1; i++)
+                {
+                    X_j[i] = X_j_matlab[i];
+                }
             }
         }
         argIdx++;
     }
 
     /////////////////////////////
-    // 9. W matrix: sparse matrix - Optional
+    // 8. W matrix: sparse matrix - Optional
     /////////////////////////////
     integer *W_i;
     integer *W_j;
@@ -326,26 +354,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mwIndex *W_j_matlab = mxGetJc(W);
             double *W_val_matlab = mxGetPr(W);
 
-            W_i = new integer[W_nnz];
-            W_j = new integer[p + 1];
-            W_val = new double[W_nnz];
-
-            for (integer i = 0; i < W_nnz; i++)
+            // Special case where we have empty sparse matrix (nnz is still =1)
+            if (W_nnz == 1 && W_val_matlab[0] == 0.0)
             {
-                W_i[i] = W_i_matlab[i];
-                W_val[i] = W_val_matlab[i];
+                W_nnz = 0;
             }
-
-            for (integer i = 0; i < p + 1; i++)
+            else
             {
-                W_j[i] = W_j_matlab[i];
+                W_i = new integer[W_nnz];
+                W_j = new integer[p + 1];
+                W_val = new double[W_nnz];
+
+                for (integer i = 0; i < W_nnz; i++)
+                {
+                    W_i[i] = W_i_matlab[i];
+                    W_val[i] = W_val_matlab[i];
+                }
+
+                for (integer i = 0; i < p + 1; i++)
+                {
+                    W_j[i] = W_j_matlab[i];
+                }
             }
         }
         argIdx++;
     }
 
     ////////////////////////////////////////
-    // 10. test_data: dense double matrix
+    // 9. test_data: dense double matrix
     ////////////////////////////////////////
     double *data_test;
     integer n_test = 0;
@@ -389,7 +425,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         n_test, data_test,
         lambda,
         M_i, M_j, M_val, M_nnz,
-        max_iter, drop_tol, term_tol, verbose,
+        max_iter, drop_tol, term_tol, verbose, option_block,
         X_i, X_j, X_val, X_nnz,
         W_i, W_j, W_val, W_nnz,
         info_num_iter,

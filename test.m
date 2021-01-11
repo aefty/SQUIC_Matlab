@@ -15,7 +15,6 @@ drop_tol=1e-2;
 term_tol=1e-10;
 M=speye(p,p)*eps;
  
-
 X0=speye(p);
 W0=speye(p);
 data_test=1;
