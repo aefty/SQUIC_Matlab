@@ -1,9 +1,5 @@
 // This is the MEX wrapper for SQUIC
 
-//
-//   /Applications/MATLAB_R2019b.app/bin/mex  COPTIMFLAGS="-O3" SQUIC.cpp -L~/ -lSQUIC
-//
-
 #include <mex.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,26 +16,19 @@
 extern "C"
 {
 
-    void SQUIC_C(
-        // Number of random variables
+    void SQUIC_CPP(
+        int mode,
         integer p,
-        // Training dataset
         integer n_train, double *Y_train,
-        // Testing dataset
         integer n_test, double *Y_test,
-        // Regulaization Term
         double lambda,
-        // M matrix
-        integer *M_i, integer *M_j, double *M_val, integer M_nnz,
-        // Optimization Paramters
-        int max_iter, double drop_tol, double term_tol, int verbose, bool option_block,
-        // Intial X0 and W0 are provided, and the end of the routing the final values of X and W are written
-        integer *&X_i, integer *&X_j, double *&X_val, integer &X_nnz,
-        integer *&W_i, integer *&W_j, double *&W_val, integer &W_nnz,
-        // Run statistics and information
+        integer *M_rinx, integer *M_cptr, double *M_val, integer M_nnz,
+        int max_iter, double drop_tol, double term_tol, int verbose,
+        integer *&X_rinx, integer *&X_cptr, double *&X_val, integer &X_nnz,
+        integer *&W_rinx, integer *&W_cptr, double *&W_val, integer &W_nnz,
         int &info_num_iter,
-        double *info_times,     // length must be 7: [total_time,cov_time,itr_cumtime,chol_cumtime,inv_cumtime,lns_cumtime,upd_cumtime]
-        double *info_objective, // length must be size max_iter
+        double *&info_times,     //length must be 6: [time_total,time_impcov,time_optimz,time_factor,time_aprinv,time_updte]
+        double *&info_objective, // length must be size max_iter
         double &info_dgap,
         double &info_logdetx,
         double &info_trXS_test);
@@ -48,21 +37,21 @@ extern "C"
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-    if (nrhs < 2)
+    if (nrhs < 5)
     {
-        mexErrMsgIdAndTxt("SQUIC:arguments",
+        mexErrMsgIdAndTxt("SQUIC_M:arguments",
                           "Missing arguments, please specify\n"
-                          "             data_train     - samples to build the empirical covariance matrix (pxn)\n"
+                          "             data_train     - data maximum likelihood (pxn)\n"
                           "             lambda         - regularization parameter\n"
                           "             max_iter       - maximum number of Newton steps\n"
                           "             drop_tol       - accuracy of the objective function\n"
                           "             term_tol       - accuracy of the objective function\n"
-                          "             verbose        - initial covariance matrix\n"
-                          "             option_block   - computaitonal approche (block 1 or scalar 0 )\n"
-                          "             M              - bias matrix\n"
-                          "             X0             - initial precision matrix\n"
-                          "             W0             - initial inverse precision matrix\n"
-                          "             data_test      - initial precision matrix\n");
+                          "             verbose        - (optional) initial covariance matrix\n"
+                          "             mode           - (optional) run mode of SQUIC (block =0, scalar=5)\n"
+                          "             M              - (optional) bias matrix\n"
+                          "             X0             - (optional) initial precision matrix\n"
+                          "             W0             - (optional) initial inverse precision matrix\n"
+                          "             data_test      - (optional) data to compute likelihood\n");
     }
 
     int argIdx = 0;
@@ -98,59 +87,53 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ////////////////////////////////////////
     // 2. max_iter: scalar interger
     ////////////////////////////////////////
-    int max_iter = 10;
-    if (nrhs > argIdx)
+    if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) //  Scalar (1x1) Numeric
     {
-        if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) //  Scalar (1x1) Numeric
-        {
-            mexErrMsgIdAndTxt("SQUIC:type",
-                              "Expected a scalar integer. (Arg. %d)",
-                              argIdx + 1);
-        }
-
-        if (std::floor(mxGetScalar(prhs[argIdx])) != mxGetScalar(prhs[argIdx]))
-        {
-            mexErrMsgIdAndTxt("SQUIC:type",
-                              "Expected a scalar integer. (Arg. %d)",
-                              argIdx + 1);
-        }
-
-        max_iter = mxGetScalar(prhs[argIdx]);
-
-        argIdx++;
+        mexErrMsgIdAndTxt("SQUIC:type",
+                          "Expected a scalar non-negative integer. (Arg. %d)",
+                          argIdx + 1);
     }
+
+    if (std::floor(mxGetScalar(prhs[argIdx])) != mxGetScalar(prhs[argIdx]))
+    {
+        mexErrMsgIdAndTxt("SQUIC:type",
+                          "Expected a scalar non-negative integer. (Arg. %d)",
+                          argIdx + 1);
+    }
+
+    if (mxGetScalar(prhs[argIdx]) < 0)
+    {
+        mexErrMsgIdAndTxt("SQUIC:type",
+                          "Expected a scalar non-negative integer. (Arg. %d)",
+                          argIdx + 1);
+    }
+
+    int max_iter = mxGetScalar(prhs[argIdx]);
+    argIdx++;
 
     ////////////////////////////////////////
     // 3. drop_tol: scalar double
     ////////////////////////////////////////
-    double drop_tol = 1e-3;
-    if (nrhs > argIdx)
+    if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) // Scalar (1x1) Numeric
     {
-        if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) // Scalar (1x1) Numeric
-        {
-            mexErrMsgIdAndTxt("SQUIC:type",
-                              "Expected a scalar. (Arg. %d)",
-                              argIdx + 1);
-        }
-        drop_tol = mxGetScalar(prhs[argIdx]);
-        argIdx++;
+        mexErrMsgIdAndTxt("SQUIC:type",
+                          "Expected a scalar. (Arg. %d)",
+                          argIdx + 1);
     }
+    double drop_tol = mxGetScalar(prhs[argIdx]);
+    argIdx++;
 
     ////////////////////////////////////////
     // 4. term_tol: scalar double
     ////////////////////////////////////////
-    double term_tol = 1e-3;
-    if (nrhs > argIdx)
+    if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) // Scalar (1x1) Numeric
     {
-        if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) // Scalar (1x1) Numeric
-        {
-            mexErrMsgIdAndTxt("SQUIC:type",
-                              "Expected a scalar. (Arg. %d)",
-                              argIdx + 1);
-        }
-        term_tol = mxGetScalar(prhs[argIdx]);
-        argIdx++;
+        mexErrMsgIdAndTxt("SQUIC:type",
+                          "Expected a scalar. (Arg. %d)",
+                          argIdx + 1);
     }
+    double term_tol = mxGetScalar(prhs[argIdx]);
+    argIdx++;
 
     ////////////////////////////////////////
     // 5. verbose - optional
@@ -170,19 +153,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     ////////////////////////////////////////
-    // 6. option_block - optional
+    // 6. mode - optional
     ////////////////////////////////////////
-    bool option_block = true;
+    int mode = 0;
     if (nrhs > argIdx)
     {
-        if (!mxIsNumeric(prhs[argIdx]) || mxGetM(prhs[argIdx]) != mxGetN(prhs[argIdx]) || mxGetN(prhs[argIdx]) != 1) //  Scalar (1x1) Numeric
+
+        if (!mxIsNumeric(prhs[argIdx]) || mxGetScalar(prhs[argIdx]) > 9 || 0 > mxGetScalar(prhs[argIdx])) //  Scalar (1x1) Numeric
         {
             mexErrMsgIdAndTxt("SQUIC:type",
-                              "Expected a scalar. (Arg. %d)",
+                              "Expected a scalar integer from 0 to 9. (Arg. %d)",
                               argIdx + 1);
         }
 
-        option_block = (bool)mxGetScalar(prhs[argIdx]);
+        mode = mxGetScalar(prhs[argIdx]);
         argIdx++;
     }
 
@@ -419,13 +403,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double *info_objective = new double[std::max(1, max_iter)]; // The objective value list, must be of size max(max_iter,1). If max_iter=0, we still keep this with size of 1
 
     // Run SQUIC
-    SQUIC_C(
+    SQUIC_CPP(
+        mode,
         p,
         n_train, data_train,
         n_test, data_test,
         lambda,
         M_i, M_j, M_val, M_nnz,
-        max_iter, drop_tol, term_tol, verbose, option_block,
+        max_iter, drop_tol, term_tol, verbose,
         X_i, X_j, X_val, X_nnz,
         W_i, W_j, W_val, W_nnz,
         info_num_iter,
@@ -452,38 +437,71 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mwIndex *ia, *ja;
     double *pr, *a;
 
-    if (max_iter == 0) // Special max_iter==0: SQUIC only compute the sparse sample covariance S
+    // Transfer ouput
+    argIdx = 0;
+    if (nlhs > argIdx)
     {
+        ////////////////////////////////////////
+        // OUT 0. X
+        ////////////////////////////////////////
 
-        argIdx = 0;
-        if (nlhs > argIdx)
+        mxArray *X_out = mxCreateSparse((mwSize)p, (mwSize)p, (mwSize)X_nnz, mxREAL);
+        mwIndex *X_out_i = mxGetIr(X_out);
+        mwIndex *X_out_j = mxGetJc(X_out);
+        double *X_out_val = mxGetPr(X_out);
+
+        // Clear Vector
+        for (integer i = 0; i < p + 1; i++)
         {
-            ////////////////////////////////////////
-            // OUT 0. W
-            ////////////////////////////////////////
-
-            mxArray *W_out = mxCreateSparse((mwSize)p, (mwSize)p, (mwSize)W_nnz, mxREAL);
-            mwIndex *W_out_i = mxGetIr(W_out);
-            mwIndex *W_out_j = mxGetJc(W_out);
-            double *W_out_val = mxGetPr(W_out);
-
-            // Clear Vector
-            for (integer i = 0; i < p + 1; i++)
-            {
-                W_out_j[i] = W_j[i];
-            }
-            // Write matrix
-            for (integer i = 0; i < W_nnz; i++)
-            {
-                W_out_i[i] = W_i[i];
-                W_out_val[i] = W_val[i];
-            }
-
-            plhs[argIdx] = W_out;
-            argIdx++;
+            X_out_j[i] = X_j[i];
         }
 
-        if (nlhs > argIdx)
+        // Write matrix
+        for (integer i = 0; i < X_nnz; i++)
+        {
+            X_out_i[i] = X_i[i];
+            X_out_val[i] = X_val[i];
+        }
+
+        plhs[argIdx] = X_out;
+        argIdx++;
+    }
+
+    if (nlhs > argIdx)
+    {
+        ////////////////////////////////////////
+        // OUT 1. W
+        ////////////////////////////////////////
+        argIdx = 1;
+        mxArray *W_out = mxCreateSparse((mwSize)p, (mwSize)p, (mwSize)W_nnz, mxREAL);
+        mwIndex *W_out_i = mxGetIr(W_out);
+        mwIndex *W_out_j = mxGetJc(W_out);
+        double *W_out_val = mxGetPr(W_out);
+
+        // Copy matrix
+        for (integer i = 0; i < p + 1; i++)
+        {
+            W_out_j[i] = W_j[i];
+        }
+        // Write matrix
+        for (integer i = 0; i < W_nnz; i++)
+        {
+            W_out_i[i] = W_i[i];
+            W_out_val[i] = W_val[i];
+        }
+
+        plhs[argIdx] = W_out;
+        argIdx++;
+    }
+
+    ////////////////////////////////////////
+    // OUT 2. info
+    ////////////////////////////////////////
+
+    if (nlhs > argIdx)
+    {
+
+        if (max_iter == 0) // Special max_iter==0: SQUIC only compute the sparse sample covariance S
         {
             ////////////////////////////////////////
             // OUT 1. info
@@ -511,73 +529,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mxSetFieldByNumber(plhs[argIdx], (mwSize)0, ifield, field);
             argIdx++;
         }
-    }
-    else // Regular case return all values
-    {
-
-        argIdx = 0;
-        if (nlhs > argIdx)
+        else // Regular case
         {
-            ////////////////////////////////////////
-            // OUT 0. X
-            ////////////////////////////////////////
-
-            mxArray *X_out = mxCreateSparse((mwSize)p, (mwSize)p, (mwSize)X_nnz, mxREAL);
-            mwIndex *X_out_i = mxGetIr(X_out);
-            mwIndex *X_out_j = mxGetJc(X_out);
-            double *X_out_val = mxGetPr(X_out);
-
-            // Clear Vector
-            for (integer i = 0; i < p + 1; i++)
-            {
-                X_out_j[i] = X_j[i];
-            }
-
-            // Write matrix
-            for (integer i = 0; i < X_nnz; i++)
-            {
-                X_out_i[i] = X_i[i];
-                X_out_val[i] = X_val[i];
-            }
-
-            plhs[argIdx] = X_out;
-            argIdx++;
-        }
-
-        if (nlhs > argIdx)
-        {
-            ////////////////////////////////////////
-            // OUT 1. W
-            ////////////////////////////////////////
-            argIdx = 1;
-            mxArray *W_out = mxCreateSparse((mwSize)p, (mwSize)p, (mwSize)W_nnz, mxREAL);
-            mwIndex *W_out_i = mxGetIr(W_out);
-            mwIndex *W_out_j = mxGetJc(W_out);
-            double *W_out_val = mxGetPr(W_out);
-
-            // Copy matrix
-            for (integer i = 0; i < p + 1; i++)
-            {
-                W_out_j[i] = W_j[i];
-            }
-            // Write matrix
-            for (integer i = 0; i < W_nnz; i++)
-            {
-                W_out_i[i] = W_i[i];
-                W_out_val[i] = W_val[i];
-            }
-
-            plhs[argIdx] = W_out;
-            argIdx++;
-        }
-
-        if (nlhs > argIdx)
-        {
-
-            ////////////////////////////////////////
-            // OUT 2. info
-            ////////////////////////////////////////
-            argIdx = 2;
 
             if (n_test > 0)
             {
@@ -720,4 +673,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     delete[] info_objective;
 
     return;
-} // end SQUIC_METHOD
+}

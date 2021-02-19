@@ -1,38 +1,59 @@
-function [X] = SQUIC(data_train, lambda,max_iter,drop_tol,term_tol,M,X0,W0,data_test,verbose)
-% [X W opt time iter dGap] = QUIC(mode, ...)
-% [X W opt time iter dGap] = QUIC("default", S, L, tol, msg, ...
-%                                 maxIter, X0, W0)
-% [X W opt time iter dGap] = QUIC("path", S, L, path, tol, msg, ...
-%                                 maxIter, X0, W0)
-% [X W opt time iter dGap] = QUIC("trace", S, L, tol, msg, ...
-%                                 maxIter, X0, W0)
+function [iC,C,stats] = SQUIC(data_train,lambda,max_iter,drop_tol,term_tol,verbose,mode_option, M_option,X0_option,W0_option,data_test_option)
+
 % Arguments:
-% mode      selects computation
-% S         empirical covariance matrix
-% L         matrix of the regularization parameters
-% path      a vector of values used for scaling L in path mode
-% tol       convergence threshold
-% msg       verbosity of print statistics
-% maxIter   maximum number of Newton iterations to execute
-% X0        initial value for the inverse covariance matrix
-% W0        initial value for the covariance matrix
-%
-% Returned values:
-% X         inverse covariance matrix, in path mode a vector of matrices
-%           the solution of
-%             min_X f(X), where f(X) = -logdet(X) + trace(XS) + |Lambda.*X|
-% W         inverse of X, in path mode a vector of matrices
-% opt       value of f(X) at optimum found; an array in "path" and "trace"
-%           modes
-% time      cpu time; an array in "path" and "trace" modes
-% iter      the number of Newton iterations executed in "default" or
-%           "trace" mode, an array of values in "path" mode
-% dGap      duality gap
-%      
-% The "trace" mode allows the computation of approximations to the optimal
-% value and the cputime used to acquire them along the way.  Useful for
-% plotting graphs showing the speed of convergence.
+%data_train     - samples to build the empirical covariance matrix (pxn)
+%lambda         - regularization parameter
+%max_iter       - maximum number of Newton steps
+%drop_tol       - accuracy of the objective function
+%term_tol       - accuracy of the objective function
+%verbose        - initial covariance matrix
+%mode           - run mode of SQUIC (block =0, scalar=5)
+%M              - bias matrix
+%X0             - initial precision matrix
+%W0             - initial inverse precision matrix
+% data_test     - initial precision matrix
+
+
+
+if( nargin == 6) 
+    mode_option = 0;
+    [iC,C,stats]=SQUIC_M(data_train,lambda,max_iter,drop_tol,term_tol,verbose,mode_option);
+end
+
+if( nargin == 7) 
+    [iC,C,stats]=SQUIC_M(data_train,lambda,max_iter,drop_tol,term_tol,verbose,mode_option);
+end
+
+if( nargin == 8 ) 
+    if(issymmetric(M_option))
+        [iC,C,stats]=SQUIC_M(data_train,lambda,max_iter,drop_tol,term_tol,verbose,mode_option,M_option);
+    else
+        error('M must be symmetric');
+    end
+end
+
+if(nargin == 9 ) 
+    % Error
+    error('Both X0 and W0 must be provided');
+end
+
+if( nargin == 10 )
+    if(issymmetric(M_option) || issymmetric(X0_option) || issymmetric(W0_option) )
+        [iC,C,stats]=SQUIC_M(data_train,lambda,max_iter,drop_tol,term_tol,verbose,mode_option,M_option,X0_option,W0_option);
+    else
+        error('M, X0 and W0 must be symmetric');
+    end
+end
+
+
+if( nargin == 11 )
+    if(issymmetric(M_option) && issymmetric(X0_option) && issymmetric(W0_option) )
+        [iC,C,stats]=SQUIC_M(data_train,lambda,max_iter,drop_tol,term_tol,verbose,mode_option,M_option,X0_option,W0_option,data_test_option);
+    else
+        error('M, X0 and W0 must be symmetric');
+    end
+end
     
-disp('Please compile the executable with make SQUIC.[mex|mexglx|mexa64]!');
+end
 
                                          
