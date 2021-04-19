@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Set the location of the mex compiler
-MEX='/Applications/MATLAB_R2019b.app/bin/mex'
-LIBSQUIC='libSQUIC.dylib'
+MEX='/Applications/MATLAB_R2021a.app/bin/mex'
 LIBSQUIC_DIR=$HOME
+LIBSQUIC='libSQUIC.dylib'
+
 
 # Compile mex SQUIC file
-$MEX -largeArrayDims SQUIC_M.cpp -L~/ -lSQUIC 
+$MEX -v -largeArrayDims SQUIC_M.cpp -L$LIBSQUIC_DIR -lSQUIC 
 
 
 MEX_NAME=$(find SQUIC_M.mex*) 
