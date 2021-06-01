@@ -2,19 +2,18 @@
 
 # Set the location of the mex compiler
 MEX='/Applications/MATLAB_R2021a.app/bin/mex'
-LIBSQUIC_DIR='/Users/aryan'
+LIBSQUIC_DIR='~'
 LIBSQUIC='libSQUIC.dylib'
 
 
 # Compile mex SQUIC file
-$MEX -v -largeArrayDims SQUIC_MATLAB.cpp  -L$LIBSQUIC_DIR -lSQUIC 
+$MEX -v  -largeArrayDims SQUIC_MATLAB.cpp  -L$LIBSQUIC_DIR -lSQUIC 
 
 
 
 MEX_NAME=$(find SQUIC_MATLAB.mex*) 
 echo "# Editing rpath of:" $MEX_NAME
 echo "# Location of libSQUIC:" $LIBSQUIC_DIR/$LIBSQUIC
-
 
 # Change the Rpath
 install_name_tool -change $LIBSQUIC $LIBSQUIC_DIR/$LIBSQUIC $MEX_NAME
