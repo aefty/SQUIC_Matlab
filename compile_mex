@@ -13,7 +13,7 @@ $MEX -v -largeArrayDims SQUIC_MATLAB.cpp  -L$LIBSQUIC_DIR -lSQUIC
 
 MEX_NAME=$(find SQUIC_MATLAB.mex*) 
 echo "# Editing rpath of:" $MEX_NAME
-echo "# Location of libSQUIC: "$LIBSQUIC_DIR/$LIBSQUIC
+echo "# Location of libSQUIC:" $LIBSQUIC_DIR/$LIBSQUIC
 
 
 # Change the Rpath
