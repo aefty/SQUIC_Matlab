@@ -9,8 +9,7 @@
 #include <iostream>
 #include <cmath>
 
-// SQUIC is fixed with type: long in (This is a requirement for Cholmod)
-
+// SQUIC is fixed with type: long int (This is a requirement for Cholmod)
 
 extern "C"
 {

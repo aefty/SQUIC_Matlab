@@ -1,15 +1,36 @@
-%Arguments:
-%1 Y              - samples to build the empirical covariance matrix (pxn)
-%2 lambda         - regularization parameter
-%3 max_iter       - maximum number of Newton steps
-%4 inv_tol       - accuracy of the objective function
-%5 term_tol       - accuracy of the objective function
-%6 verbose        - initial covariance matrix
-%7 M              - bias matrix
-%8 X0             - initial precision matrix
-%9 W0             - initial inverse precision matrix
-
 function [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambda, max_iter, inv_tol, term_tol,verbose, M, X0, W0)
+    % SQUIC : Sparse Inverse Covariance Estimation
+    % [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambda, max_iter, inv_tol, term_tol,verbose, M, X0, W0)
+    %
+    % input arguments : 
+    %
+    % Y:                Data matrix p x p consisting of p>2 random variables and n>1 samples.
+    % l:                Sparsity parameter as a nonzero positive scalar.
+    % max_iter:         [default 100] Maximum number of Newton iterations as a nonnegative integer
+    % inv_tol:          [default 1e-3] Termination tolerance as a nonzero positive scalar.
+    % term_tol:         [default 1e-3] Dropout tolerance as a nonzero positive scalar.
+    % verbose:          [default 1] Verbosity level as 0 or 1.
+    % M:                [default None] Sparsity structure matrix as a sparse p x p matrix.
+    % X0:               [default None] Initial value of precision matrix as a sparse p x p matrix.
+    % W0:               [default None] Initial value of inverse precision matrix as a sparse p x p  matrix.
+    %
+    % return values : 
+    %
+    % X:                Precision matrix as a sparse p x p matrix.
+    % W:                Inverse precision matrix as a sparse p x p matrix.
+    % info_times:       List of different compute times.
+    % info_objective:   List of objective function values at each Newton iteration.
+    % info_logdetX:     Log-determinant of the final precision matrix.
+    % info_trSX:        Trace of sample covariance matrix times the final precision matrix.
+    %
+    %
+    % Example
+    %
+    % 
+    %
+    % See also SQUIC_S.
+    
+    setenv('KMP_DUPLICATE_LIB_OK','TRUE');
 
     [p,n]= size(Y);
     
@@ -24,7 +45,7 @@ function [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambd
     end
 
     if(nargin == 3)
-        inv_tol =  1e-3
+        inv_tol =  1e-3;
         term_tol =  1e-3;
         verbose =  1;        
         M=sparse(p,p);
@@ -104,17 +125,5 @@ function [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambd
     W0 = (W0 + W0')/2;
 
     [X,W,info_times,info_objective,info_logdetX,info_trSX]=SQUIC_MATLAB(Y, lambda, max_iter, inv_tol, term_tol,verbose, M, X0, W0);
-end
-
-
-
-function [S,info_times] = SQUIC_S(Y, lambda,verbose, M)
-    [p,n]= size(Y);
-    max_iter=0;
-    inv_tol=1e-3;
-    term_tol=1e-3;
-    X0 = speye(p,p);
-    W0 = speye(p,p);
-    [~,S,info_times] = SQUIC(Y, lambda, max_iter, inv_tol, term_tol,verbose, M, X0, W0);
 end
 
