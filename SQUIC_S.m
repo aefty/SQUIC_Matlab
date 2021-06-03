@@ -1,4 +1,4 @@
-function [S,info_times] = SQUIC_S(Y, lambda,verbose, M)
+function [S,info_times] = SQUIC_S(Y, lambda, verbose, M)
     % SQUIC_S : computes sample covariance matrix.
     % [S,info_times] = SQUIC_S(Y, lambda,verbose, M)
     %
@@ -16,12 +16,37 @@ function [S,info_times] = SQUIC_S(Y, lambda,verbose, M)
     %
     %
     % See also SQUIC
-   
-    [p,n]= size(Y);
-    max_iter=0;
-    inv_tol=1e-3;
-    term_tol=1e-3;
-    X0 = speye(p,p);
-    W0 = speye(p,p);
-    [~,S,info_times] = SQUIC(Y, lambda, max_iter, inv_tol, term_tol,verbose, M, X0, W0);
+    
+    [p,~]= size(Y);        
+
+    if(nargin == 2)
+        max_iter = 0;
+        inv_tol  = 1e-3;
+        term_tol = 1e-3;
+        verbose  = 1;        
+        M        = sparse(p,p);
+        %X0       = speye(p,p);
+        %W0       = speye(p,p);    
+    end
+    
+    if(nargin == 3)
+        max_iter = 0;
+        inv_tol  = 1e-3;
+        term_tol = 1e-3;
+        M        = sparse(p,p);
+        %X0       = speye(p,p);
+        %W0       = speye(p,p);    
+    end
+    
+    if(nargin == 4)
+        max_iter = 0;
+        inv_tol  = 1e-3;
+        term_tol = 1e-3;
+        %X0       = speye(p,p);
+        %W0       = speye(p,p);    
+    end
+    
+    disp("got here");
+    
+    [~,S,info_times] = SQUIC(Y, lambda, max_iter, inv_tol, term_tol,verbose,M);
 end

@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     argIdx++;
 
     ////////////////////////////////////////
-    // 2. max_iter: scalar interger
+    // 2. max_iter: scalar integer
     ////////////////////////////////////////
     int max_iter = mxGetScalar(prhs[argIdx]);
     argIdx++;
@@ -214,8 +214,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     int    info_num_iter = 0;
     double info_logdetX = 0.0;
     double info_trSX = 0.0;
-    double *info_times_buffer = new double[6];
-    double *info_objective_buffer = new double[std::max(1, max_iter)];
+    double *info_times_buffer = new double[6]();
+    double *info_objective_buffer = new double[std::max(1, max_iter)]();
 
     // hardcode mode
     int mode = 0;
@@ -333,7 +333,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     // OUT info_trSX
     ////////////////////////////////////////
     if (nlhs > argIdx) {
-        mxArray *info_trSX_out = mxCreateDoubleMatrix((mwSize)1, (mwSize)info_num_iter, mxREAL);
+        mxArray *info_trSX_out = mxCreateDoubleMatrix((mwSize)1, (mwSize)1, mxREAL);
         double *ptr = mxGetPr(info_trSX_out);
 
         ptr[0] = info_trSX;

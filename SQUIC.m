@@ -31,23 +31,25 @@ function [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambd
     % See also SQUIC_S.
     
     setenv('KMP_DUPLICATE_LIB_OK','TRUE');
+    
+    disp('got here in SQUIC');
 
     [p,n]= size(Y);
     
     if(nargin == 2)
         max_iter =  100;
-        inv_tol =  1e-3;
+        inv_tol  =  1e-3;
         term_tol =  1e-3;
-        verbose =  1;        
+        verbose  =  1;        
         M=sparse(p,p);
         W0=speye(p,p);
         X0=speye(p,p);      
     end
 
     if(nargin == 3)
-        inv_tol =  1e-3;
+        inv_tol  =  1e-3;
         term_tol =  1e-3;
-        verbose =  1;        
+        verbose  =  1;        
         M=sparse(p,p);
         W0=speye(p,p);
         X0=speye(p,p);      
@@ -55,7 +57,7 @@ function [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambd
        
     if(nargin == 4)
         term_tol =  1e-3;
-        verbose =  1;        
+        verbose  =  1;        
         M=sparse(p,p);
         W0=speye(p,p);
         X0=speye(p,p);      
