@@ -32,8 +32,6 @@ function [X,W,info_times,info_objective,info_logdetX,info_trSX] = SQUIC(Y, lambd
     
     setenv('KMP_DUPLICATE_LIB_OK','TRUE');
     
-    disp('got here in SQUIC');
-
     [p,n]= size(Y);
     
     if(nargin == 2)

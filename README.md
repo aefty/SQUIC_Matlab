@@ -15,7 +15,7 @@
 
 4) in SQUIC_MATLAB folder run
     
-   ```angular2
+   ```
    sh compile_mex
    ```
    
@@ -30,10 +30,10 @@ n=100;
 lambda=.3;
 Y = randn(p,n);
 
-[X,W,info_times,info_objective,info_logdetX,info_trSX]=SQUIC(Y, lambda);
+% to compute sample covariance matrix
+[X,W,info_times,info_objective,info_logdetX,info_trSX]=SQUIC_S(Y, lambda);
 
-% optionally change input for max_iter, inv_tol, etc. 
-max_iter = 40;
+% to compute sparse sampel covariance matrix X, and its inverse W, etc.
 [X,W,info_times,info_objective,info_logdetX,info_trSX]=SQUIC(Y, lambda, max_iter);
 ```
 

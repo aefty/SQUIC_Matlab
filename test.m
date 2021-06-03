@@ -3,9 +3,10 @@ n=100;
 lambda=.3;
 Y = randn(p,n);
 
-[X,W,info_times,info_objective,info_logdetX,info_trSX]=SQUIC(Y, lambda,0);
+% to compute sample covariance matrix
+[S,info_times_S]=SQUIC_S(Y, lambda);
 
-verbose = 0;
 
+% to compute sparse sampel covariance matrix X, and its inverse W, etc.
+[X,W,info_times,info_objective,info_logdetX,info_trSX]=SQUIC(Y, lambda);
 
-%[S,info_times_S]=SQUIC_S(Y, lambda);

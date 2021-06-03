@@ -45,8 +45,6 @@ function [S,info_times] = SQUIC_S(Y, lambda, verbose, M)
         %X0       = speye(p,p);
         %W0       = speye(p,p);    
     end
-    
-    disp("got here");
-    
+        
     [~,S,info_times] = SQUIC(Y, lambda, max_iter, inv_tol, term_tol,verbose,M);
 end
