@@ -15,7 +15,7 @@
 
 4) in SQUIC_MATLAB folder run
     
-   ```
+   ```angular2
    sh compile_mex
    ```
    
