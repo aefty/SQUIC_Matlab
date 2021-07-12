@@ -1,6 +1,6 @@
 ## SQUIC for Matlab
 ### Sparse Quadratic Inverse Covariance Estimation
-This is the SQUIC algorithm, made available through a Matlab interface. 
+This is the SQUIC algorithm, made available for Matlab. 
 SQUIC tackles the statistical problem of estimating large sparse 
 inverse covariance matrices. This estimation poses an ubiquitous 
 problem that arises in many applications e.g. coming from the 
@@ -20,17 +20,17 @@ For further details please see the listed references.
 
 ### Installation
 
-1) Download SQUIC_Release_Source from https://www.gitlab.ci.inf.usi.ch/SQUIC/libSQUIC
+1) Get the pre-compiled libSQUIC library from https://www.gitlab.ci.inf.usi.ch/SQUIC/libSQUIC
    (follow provided installation instructions).
 
-2) Download or git clone SQUIC_MATLAB from this repository (https://www.gitlab.ci.inf.usi.ch/SQUIC/SQUIC_Matlab)
+2) Git clone SQUIC_MATLAB from this repository (https://www.gitlab.ci.inf.usi.ch/SQUIC/SQUIC_Matlab)
 
 3) In the terminal go to folder where SQUIC_MATLAB is installed, open compile_mex file 
    and check that 
 
 ```
 MEX='path/to/matlab/bin/mex'     # e.g. '/Applications/MATLAB_R2021a.app/bin/mex' (check Matlab version)
-LIBSQUIC_DIR='path/toLibSQUIC    # e.g. '/Users/user_name'  
+LIBSQUIC_DIR='path/toLibSQUIC    # e.g. '/Users/user_name' (we recommend to put it in your home directory)
 ```
 
 4) in SQUIC_MATLAB folder run
@@ -39,7 +39,7 @@ LIBSQUIC_DIR='path/toLibSQUIC    # e.g. '/Users/user_name'
 sh compile_mex
 ```
    
-if successful, you should now have a SQUIC_MATLAB.mex* file. You can now use SQUIC_MATLAB as described in the example below. Make sure that the .mex file is in your path. 
+if successful, you should now have a SQUIC_MATLAB.mex* file. You can use SQUIC_MATLAB as described in the example below. Make sure that the .mex file is in your path. For any further details please check ...
 
 
 ### Example
