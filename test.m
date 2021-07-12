@@ -1,6 +1,6 @@
-p=1000;
+p=1024;
 n=100;
-lambda=.3;
+lambda=.4;
 Y = randn(p,n);
 
 % to compute sample covariance matrix
